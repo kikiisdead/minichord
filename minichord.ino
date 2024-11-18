@@ -2,6 +2,11 @@
 #include "betterEncoder.h"
 #include "voice.h"
 #include "mixers.h"
+#include "velocity.h"
+#include "volume.h"
+#include "chordType.h"
+#include "chordRoot.h"
+#include "animation.h"
 #include <Audio.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -88,11 +93,14 @@ Button buttons[7] = { Button(CHORDPIN1), Button(CHORDPIN2), Button(CHORDPIN3), B
 Button editButton(EDITPIN);
 
 int editSelector = 0;
-int editMode = ROOTEDIT;
 
-int velocity = 127;
+Velocity velocity(127);
+Volume volume(0.5);
+ChordType chordType(chords[editSelector]);
+ChordRoot chordRoot(chords[editSelector]);
+Animation animation;
 
-float volume = 0.5;
+EncoderEditable* editMode = &chordRoot;
 
 BetterEncoder enc(25, 24, 3);
 
@@ -136,7 +144,7 @@ void setup() {
   //audio things
   AudioMemory(12);
   audioShield.enable();
-  audioShield.volume(volume);
+  audioShield.volume(volume.getVolume());
 
   for (int i = 0; i < 11; i++) {
     mixer.gain(i, 0.5);
@@ -159,13 +167,13 @@ void loop() {
   for (int i = 0; i < 7; i++) {
     chords[i]->update();
   }
-  if (editMode == ANIM) {
+  if (editMode->getNum() == ANIM) {
     animateStrings();
   }
 }
 
 void noteOn(int voice, int noteValue, bool selector) {
-  usbMIDI.sendNoteOn(noteValue, velocity, 1);
+  usbMIDI.sendNoteOn(noteValue, velocity.getVelocity(), 1);
   if (selector == SUSTAIN) {
     sustainVoices[voice]->noteOn(noteValue);
   } else {
@@ -174,7 +182,7 @@ void noteOn(int voice, int noteValue, bool selector) {
 }
 
 void noteOff(int voice, int noteValue, bool selector) {
-  usbMIDI.sendNoteOff(note, 0, 1);
+  usbMIDI.sendNoteOff(noteValue, 0, 1);
   if (selector == SUSTAIN) {
     sustainVoices[voice]->noteOff(noteValue);
   } else {
@@ -183,48 +191,19 @@ void noteOff(int voice, int noteValue, bool selector) {
 }
 
 void encoderIncrement() {
-  int chordRoot = chords[editSelector]->getRoot();
-  int chordType = ((int)chords[editSelector]->getChordType() == 8) ? 0 : (int)chords[editSelector]->getChordType() + 1;
-  switch (editMode) {
-    case ROOTEDIT:
-      chords[editSelector]->setRoot(chordRoot + 1);
-      break;
-    case CHORDEDIT:
-      chords[editSelector]->setChordType((chordTypes)chordType);
-      break;
-    case VOLEDIT:
-      volumeIncrement();
-      audioShield.volume(volume);
-      break;
-    case VELEDIT:
-      velocity += 1;
-      break;
-    case ANIM:
-      break;
-  }
+  chordRoot.setChord(chords[editSelector]);
+  chordType.setChord(chords[editSelector]);
+  editMode->increment();
+  audioShield.volume(volume.getVolume());
   displayUI();
 }
 
 void encoderDecrement() {
-  int chordRoot = chords[editSelector]->getRoot();
-  int chordType = ((int)chords[editSelector]->getChordType() == 0) ? 8 : (int)chords[editSelector]->getChordType() - 1;
-  switch (editMode) {
-    case ROOTEDIT:
-      chords[editSelector]->setRoot(chordRoot - 1);
-      break;
-    case CHORDEDIT:
-      chords[editSelector]->setChordType((chordTypes)chordType);
-      break;
-    case VOLEDIT:
-      volumeDecrement();
-      audioShield.volume(volume);
-      break;
-    case VELEDIT:
-      velocity -= 1;
-      break;
-    case ANIM:
-      break;
-  }
+  chordRoot.setChord(chords[editSelector]);
+  chordType.setChord(chords[editSelector]);
+  editMode->decrement();
+  audioShield.volume(volume.getVolume());
+  displayUI();
   displayUI();
 }
 
@@ -239,18 +218,6 @@ void adaCapCheck(int noteTouch[8]) {
   }
 }
 
-void volumeIncrement() {
-  if (volume < 1) {
-    volume += 0.01;
-  }
-}
-
-void volumeDecrement() {
-  if (volume > 0) {
-    volume -= 0.01;
-  }
-}
-
 void checkChordButtons() {
   for (int i = 0; i < 7; i++) {
     if (buttons[i].buttonCheck() == 1) {
@@ -258,12 +225,12 @@ void checkChordButtons() {
       if (chords[editSelector]->getRoot() != EEPROM.read(editSelector)) {
         EEPROM.write(editSelector, chords[editSelector]->getRoot());
         Serial.println("Writing root note");
-      } 
+      }
       if ((int)chords[editSelector]->getChordType() != EEPROM.read(editSelector + 10)) {
         EEPROM.write(editSelector + 10, (int)chords[editSelector]->getChordType());
         Serial.println("Writing chord type");
       }
-      if (editMode != ANIM) {
+      if (editMode->getNum() != ANIM) {
         displayUI();
       }
     }
@@ -271,17 +238,23 @@ void checkChordButtons() {
 }
 
 void checkEdit() {
+  int edit = editMode->getNum();
   if (editButton.buttonCheck() == 1) {
-    editMode += 1;
-    if (editMode > 3) {
-      editMode = 0;
+    edit = (edit < 3) ? edit + 1 : 0;
+    if (edit == ROOTEDIT) {
+      editMode = &chordRoot;
+    } else if (edit == CHORDEDIT) {
+      editMode = &chordType;
+    } else if (edit == VOLEDIT) {
+      editMode = &volume;
+    } else if (edit == VELEDIT) {
+      editMode = &velocity;
     }
     holdTime = 0;
     displayUI();
-  } else if (editButton.buttonCheck() == 2) {
-    if (holdTime >= 500) {
-      editMode = ANIM;
-    }
+  } 
+  if (editButton.buttonCheck() == 2 && holdTime > 500) {
+    editMode = &animation;
   }
 }
 
@@ -296,8 +269,8 @@ void displayUI() {
   displayLabel("Volume:", 2);
   displayItem(getVolume(), 2);
   displayLabel("Velocity:", 3);
-  displayItem(String(velocity), 3);
-  displaySelector(editMode);
+  displayItem(String(velocity.getVelocity()), 3);
+  displaySelector(editMode->getNum());
   display.display();
 }
 
@@ -326,19 +299,14 @@ void displayLabel(String labelText, int position) {
   int16_t x1, y1;
   uint16_t w, h;
   display.getTextBounds(labelText, 0, 0, &x1, &y1, &w, &h);
-  switch (position) {
-    case 0:
-      display.setCursor(0, 0);
-      break;
-    case 1:
-      display.setCursor(0, SCREEN_HEIGHT / 2);
-      break;
-    case 2:
-      display.setCursor(SCREEN_WIDTH - w, 0);
-      break;
-    case 3:
-      display.setCursor(SCREEN_WIDTH - w, SCREEN_HEIGHT / 2);
-      break;
+  if (position == 0) {
+    display.setCursor(0, 0);
+  } else if (position == 1) {
+    display.setCursor(0, SCREEN_HEIGHT / 2);
+  } else if (position == 2) {
+    display.setCursor(SCREEN_WIDTH - w, 0);
+  } else if (position == 3) {
+    display.setCursor(SCREEN_WIDTH - w, SCREEN_HEIGHT / 2);
   }
   display.print(labelText);
 }
@@ -349,19 +317,14 @@ void displayItem(String itemText, int position) {
   int16_t x1, y1;
   uint16_t w, h;
   display.getTextBounds(itemText, 0, 0, &x1, &y1, &w, &h);
-  switch (position) {
-    case 0:
-      display.setCursor(0, 10);
-      break;
-    case 1:
-      display.setCursor(0, (SCREEN_HEIGHT / 2) + 10);
-      break;
-    case 2:
-      display.setCursor(SCREEN_WIDTH - w, 10);
-      break;
-    case 3:
-      display.setCursor(SCREEN_WIDTH - w, (SCREEN_HEIGHT / 2) + 10);
-      break;
+  if (position == 0) {
+    display.setCursor(0, 10);
+  } else if (position == 1) {
+    display.setCursor(0, (SCREEN_HEIGHT / 2) + 10);
+  } else if (position == 2) {
+    display.setCursor(SCREEN_WIDTH - w, 10);
+  } else if (position == 3) {
+    display.setCursor(SCREEN_WIDTH - w, (SCREEN_HEIGHT / 2) + 10);
   }
   display.print(itemText);
 }
@@ -369,19 +332,14 @@ void displayItem(String itemText, int position) {
 void displaySelector(int position) {
   display.setTextSize(2);
   display.setTextColor(WHITE);
-  switch (position) {
-    case 0:
-      display.setCursor((SCREEN_WIDTH / 2), 10);
-      break;
-    case 1:
-      display.setCursor((SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2) + 10);
-      break;
-    case 2:
-      display.setCursor((SCREEN_WIDTH / 2), 10);
-      break;
-    case 3:
-      display.setCursor((SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2) + 10);
-      break;
+  if (position == 0) {
+    display.setCursor(SCREEN_WIDTH / 2, 10);
+  } else if (position == 1) {
+    display.setCursor(SCREEN_WIDTH / 2, (SCREEN_HEIGHT / 2) + 10);
+  } else if (position == 2) {
+    display.setCursor(SCREEN_WIDTH / 2, 10);
+  } else if (position == 3) {
+    display.setCursor(SCREEN_WIDTH / 2, (SCREEN_HEIGHT / 2) + 10);
   }
   if (position < 2) {
     display.print(F("<"));
@@ -472,6 +430,6 @@ String getChordType() {
 }
 
 String getVolume() {
-  String volStr = String(volume, 2);
+  String volStr = String(volume.getVolume(), 2);
   return volStr;
 }
