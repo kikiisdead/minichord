@@ -282,7 +282,7 @@ void animateStrings() {
       float jitterAmount = strumVoices[i]->readPeak() * 4;
       float prevJitter = 0;
       for (int j = 0; j < display.width(); j += 8) {
-        int randomInt = random(-4, 5);
+        int randomInt = (j < SCREEN_WIDTH - 8) ? random(-4, 5) : 0;
         float jitter = randomInt * jitterAmount;
         display.drawLine(j, yLevel + prevJitter, j + 8, yLevel + jitter, WHITE);
         prevJitter = jitter;
