@@ -8,10 +8,8 @@ public:
   Animation() {
     num = 4;
   }
-  void increment() {
-  }
-  void decrement() {
-  }
+  void increment() {}
+  void decrement() {}
 };
 
 #endif

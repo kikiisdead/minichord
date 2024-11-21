@@ -136,6 +136,7 @@ void Chord::chordSustain() {
 }
 
 void Chord::update() {
+  chordButton.update();
   switch (chordButton.buttonCheck()) {
     case 1:
       chordPress();
@@ -147,4 +148,8 @@ void Chord::update() {
       chordRelease();
       break;
   }
+}
+
+Button* Chord::getButton() {
+  return &chordButton;
 }

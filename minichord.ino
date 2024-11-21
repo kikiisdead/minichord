@@ -89,27 +89,24 @@ Voice* sustainVoices[3] = { &sustainVoice1, &sustainVoice2, &sustainVoice3 };
 Voice* strumVoices[8] = { &strumVoice1, &strumVoice2, &strumVoice3, &strumVoice4, &strumVoice5, &strumVoice6, &strumVoice7, &strumVoice8 };
 
 Chord* chords[7] = { &chord1, &chord2, &chord3, &chord4, &chord5, &chord6, &chord7 };
-Button buttons[7] = { Button(CHORDPIN1), Button(CHORDPIN2), Button(CHORDPIN3), Button(CHORDPIN4), Button(CHORDPIN5), Button(CHORDPIN6), Button(CHORDPIN7) };
 Button editButton(EDITPIN);
 
 int editSelector = 0;
 
-Velocity velocity(127);
+Velocity velocity(90);
 Volume volume(0.5);
 ChordType chordType(chords[editSelector]);
 ChordRoot chordRoot(chords[editSelector]);
 Animation animation;
+EncoderEditable* editMode = &chordRoot; //using pointer so as not to create new object, just point to already existing object
 
-EncoderEditable* editMode = &chordRoot;
-
-BetterEncoder enc(25, 24, 3);
+BetterEncoder enc(25, 24, 4);
 
 elapsedMillis holdTime;
 elapsedMillis animationTime;
 
 void setup() {
   Serial.begin(9600);
-
   enc.incrementHandler(encoderIncrement);
   enc.decrementHandler(encoderDecrement);
 
@@ -127,7 +124,7 @@ void setup() {
     chords[i]->noteOffHandler(noteOff);
     chords[i]->capCheckHandler(adaCapCheck);
     chords[i]->initRoot(EEPROM.read(i));
-    chords[i]->setChordType((chordTypes)(EEPROM.read(i + 10) % 9));
+    chords[i]->setChordType((chordTypes)(EEPROM.read(i + 10)));
   }
 
   //display
@@ -172,7 +169,7 @@ void loop() {
   }
 }
 
-void noteOn(int voice, int noteValue, bool selector) {
+void noteOn(int voice, int noteValue, bool selector) { //going into chord object
   usbMIDI.sendNoteOn(noteValue, velocity.getVelocity(), 1);
   if (selector == SUSTAIN) {
     sustainVoices[voice]->noteOn(noteValue);
@@ -181,7 +178,7 @@ void noteOn(int voice, int noteValue, bool selector) {
   }
 }
 
-void noteOff(int voice, int noteValue, bool selector) {
+void noteOff(int voice, int noteValue, bool selector) { //going into chord object
   usbMIDI.sendNoteOff(noteValue, 0, 1);
   if (selector == SUSTAIN) {
     sustainVoices[voice]->noteOff(noteValue);
@@ -190,24 +187,7 @@ void noteOff(int voice, int noteValue, bool selector) {
   }
 }
 
-void encoderIncrement() {
-  chordRoot.setChord(chords[editSelector]);
-  chordType.setChord(chords[editSelector]);
-  editMode->increment();
-  audioShield.volume(volume.getVolume());
-  displayUI();
-}
-
-void encoderDecrement() {
-  chordRoot.setChord(chords[editSelector]);
-  chordType.setChord(chords[editSelector]);
-  editMode->decrement();
-  audioShield.volume(volume.getVolume());
-  displayUI();
-  displayUI();
-}
-
-void adaCapCheck(int noteTouch[8]) {
+void adaCapCheck(int noteTouch[8]) { // going into chord object
   uint8_t touched = cap.touched();
   for (uint8_t i = 0; i < 8; i++) {
     if (touched & (1 << i)) {
@@ -218,9 +198,29 @@ void adaCapCheck(int noteTouch[8]) {
   }
 }
 
+void encoderIncrement() { // going into BetterEncoder Object
+  chordRoot.setChord(chords[editSelector]);
+  chordType.setChord(chords[editSelector]);
+  editMode->increment();
+  audioShield.volume(volume.getVolume());
+  if (editMode->getNum() != ANIM) {
+    displayUI();
+  }
+}
+
+void encoderDecrement() { // going into BetterEncoder Object
+  chordRoot.setChord(chords[editSelector]);
+  chordType.setChord(chords[editSelector]);
+  editMode->decrement();
+  audioShield.volume(volume.getVolume());
+  if (editMode->getNum() != ANIM) {
+    displayUI();
+  }
+}
+
 void checkChordButtons() {
-  for (int i = 0; i < 7; i++) {
-    if (buttons[i].buttonCheck() == 1) {
+  for (int i = 0; i < 7; i ++) {
+    if (chords[i]->getButton()->buttonCheck() == 1) {
       editSelector = i;
       if (chords[editSelector]->getRoot() != EEPROM.read(editSelector)) {
         EEPROM.write(editSelector, chords[editSelector]->getRoot());
@@ -238,8 +238,8 @@ void checkChordButtons() {
 }
 
 void checkEdit() {
-  int edit = editMode->getNum();
   if (editButton.buttonCheck() == 1) {
+    int edit = editMode->getNum();
     edit = (edit < 3) ? edit + 1 : 0;
     if (edit == ROOTEDIT) {
       editMode = &chordRoot;
@@ -252,7 +252,7 @@ void checkEdit() {
     }
     holdTime = 0;
     displayUI();
-  } 
+  }
   if (editButton.buttonCheck() == 2 && holdTime > 500) {
     editMode = &animation;
   }
@@ -275,7 +275,7 @@ void displayUI() {
 }
 
 void animateStrings() {
-  if (animationTime >= 50) {  //slow down to 20 fps so that it is less laggy
+  if (animationTime >= 60) {  //slow down to 24 fps so that it is less laggy
     display.clearDisplay();
     for (int i = 0; i < 8; i++) {
       int yLevel = (i * 8) + 4;

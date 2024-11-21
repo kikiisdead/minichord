@@ -7,11 +7,11 @@ Button::Button(int buttonPin_) {
   lastButtonState = HIGH;
   pinMode(buttonPin, INPUT_PULLUP);
   timeSinceEvent = 0;
+  output = 0;
 }
 
-int Button::buttonCheck() {
+void Button::update() {
   buttonState = digitalRead(buttonPin);
-  int output;
   if (buttonState == LOW && lastButtonState == HIGH && timeSinceEvent > 5) {  // button press inverted HIGH adn LOW because input pullup
     output = 1;
     timeSinceEvent = 0;
@@ -24,5 +24,8 @@ int Button::buttonCheck() {
     output = 0;
   }
   lastButtonState = buttonState;
+}
+
+int Button::buttonCheck() {
   return output;
 }

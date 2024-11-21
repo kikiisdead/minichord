@@ -12,14 +12,10 @@ public:
     num = 2;
   }
   void increment() {
-    if (volume < 1) {
-      volume += 0.01;
-    }
+    volume = (volume < 1) ? volume + 0.01 : 1;
   }
   void decrement() {
-    if (volume > 0) {
-      volume -= 0.01;
-    }
+    volume = (volume > 0) ? volume - 0.01 : 0;
   }
   float getVolume() {
     return volume;

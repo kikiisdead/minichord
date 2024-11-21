@@ -42,6 +42,7 @@ public:
   void noteOnHandler(void (*func)(int, int, bool));
   void noteOffHandler(void (*func)(int, int, bool));
   void capCheckHandler(void (*func)(int*));
+  Button* getButton();
 };
 
 #endif
