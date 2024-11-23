@@ -238,6 +238,7 @@ void checkChordButtons() {
 }
 
 void checkEdit() {
+  editButton.update();
   if (editButton.buttonCheck() == 1) {
     int edit = editMode->getNum();
     edit = (edit < 3) ? edit + 1 : 0;
