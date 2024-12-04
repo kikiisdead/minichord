@@ -8,3 +8,7 @@
  - 7 MX compatible key switches (or equivalent, I used some Adafruit ones)
  - Adafruit SSD1306 (you may need to change the device ID)
  - Alps EC12E Vertical Rotary Encoder
+
+[Mouser Project Page](https://www.mouser.com/ProjectManager/ProjectDetail.aspx?AccessID=75f0d25f79)
+
+Does not include header pins, standoffs, or the cost to print the PCB. 
