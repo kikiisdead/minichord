@@ -8,5 +8,3 @@
  - 7 MX compatible key switches (or equivalent, I used some Adafruit ones)
  - Adafruit SSD1306 (you may need to change the device ID)
  - Alps EC12E Vertical Rotary Encoder
-
-The PCB is not included in this respository.
