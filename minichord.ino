@@ -60,22 +60,15 @@ Voice strumVoice5(WAVEFORM_TRIANGLE, 0.5);
 Voice strumVoice6(WAVEFORM_TRIANGLE, 0.5);
 Voice strumVoice7(WAVEFORM_TRIANGLE, 0.5);
 Voice strumVoice8(WAVEFORM_TRIANGLE, 0.5);
+
+Voice* voices[11] = { &sustainVoice1, &sustainVoice2, &sustainVoice3, &strumVoice1, &strumVoice2, &strumVoice3, &strumVoice4, &strumVoice5, &strumVoice6, &strumVoice7, &strumVoice8 };
+
 AudioMixer11 mixer;
 AudioOutputI2S i2sOut;
 AudioControlSGTL5000 audioShield;
-AudioConnection patchCord1(sustainVoice1.envelope, 0, mixer, 0);
-AudioConnection patchCord2(sustainVoice2.envelope, 0, mixer, 1);
-AudioConnection patchCord3(sustainVoice3.envelope, 0, mixer, 2);
-AudioConnection patchCord4(strumVoice1.envelope, 0, mixer, 3);
-AudioConnection patchCord5(strumVoice2.envelope, 0, mixer, 4);
-AudioConnection patchCord6(strumVoice3.envelope, 0, mixer, 5);
-AudioConnection patchCord7(strumVoice4.envelope, 0, mixer, 6);
-AudioConnection patchCord8(strumVoice5.envelope, 0, mixer, 7);
-AudioConnection patchCord9(strumVoice6.envelope, 0, mixer, 8);
-AudioConnection patchCord10(strumVoice7.envelope, 0, mixer, 9);
-AudioConnection patchCord11(strumVoice8.envelope, 0, mixer, 10);
-AudioConnection patchCord12(mixer, 0, i2sOut, 0);
-AudioConnection patchCord13(mixer, 0, i2sOut, 1);
+AudioConnection* patchCords[11];
+AudioConnection patchCord1(mixer, 0, i2sOut, 0);
+AudioConnection patchCord2(mixer, 0, i2sOut, 1);
 
 Chord chord1(CHORDPIN1);
 Chord chord2(CHORDPIN2);
@@ -139,13 +132,15 @@ void setup() {
   display.display();
 
   //audio things
+  for (int i = 0; i < 11; i++) {
+    patchCords[i] = new AudioConnection(voices[i]->envelope, 0, mixer, i);
+    mixer.gain(i, 0.5);
+  }
+
   AudioMemory(12);
   audioShield.enable();
   audioShield.volume(volume.getVolume());
 
-  for (int i = 0; i < 11; i++) {
-    mixer.gain(i, 0.5);
-  }
   for (int i = 0; i < 3; i++) {
     sustainVoices[i]->setEnvelope(10, 200, 0.6, 80);
   }
@@ -171,37 +166,28 @@ void loop() {
 
 void noteOn(int voice, int noteValue, bool selector) { //going into chord object
   usbMIDI.sendNoteOn(noteValue, velocity.getVelocity(), 1);
-  if (selector == SUSTAIN) {
-    sustainVoices[voice]->noteOn(noteValue);
-  } else {
-    strumVoices[voice]->noteOn(noteValue);
-  }
+  if (selector == SUSTAIN) sustainVoices[voice]->noteOn(noteValue);
+  else strumVoices[voice]->noteOn(noteValue);
 }
 
 void noteOff(int voice, int noteValue, bool selector) { //going into chord object
   usbMIDI.sendNoteOff(noteValue, 0, 1);
-  if (selector == SUSTAIN) {
-    sustainVoices[voice]->noteOff(noteValue);
-  } else {
-    strumVoices[voice]->noteOff(noteValue);
-  }
+  if (selector == SUSTAIN) sustainVoices[voice]->noteOff(noteValue);
+  else strumVoices[voice]->noteOff(noteValue);
 }
 
 void adaCapCheck(int noteTouch[8]) { // going into chord object
   uint8_t touched = cap.touched();
   for (uint8_t i = 0; i < 8; i++) {
-    if (touched & (1 << i)) {
-      noteTouch[i] = HIGH;  //simply returning the position that it is touched/which cap is being touched. returns whichever is firt so only one touch position;
-    } else {
-      noteTouch[i] = LOW;
-    }
+    if (touched & (1 << i)) noteTouch[i] = HIGH;  //simply returning the position that it is touched/which cap is being touched. returns whichever is firt so only one touch position;
+    else noteTouch[i] = LOW;
   }
 }
 
 void encoderIncrement() { // going into BetterEncoder Object
   chordRoot.setChord(chords[editSelector]);
   chordType.setChord(chords[editSelector]);
-  editMode->increment();
+  editMode->increment(); // using abstraction through a superclass to call this member function
   audioShield.volume(volume.getVolume());
   if (editMode->getNum() != ANIM) {
     displayUI();
@@ -211,7 +197,7 @@ void encoderIncrement() { // going into BetterEncoder Object
 void encoderDecrement() { // going into BetterEncoder Object
   chordRoot.setChord(chords[editSelector]);
   chordType.setChord(chords[editSelector]);
-  editMode->decrement();
+  editMode->decrement(); // using abstraction through a superclass to call this member function
   audioShield.volume(volume.getVolume());
   if (editMode->getNum() != ANIM) {
     displayUI();
@@ -242,15 +228,10 @@ void checkEdit() {
   if (editButton.buttonCheck() == 1) {
     int edit = editMode->getNum();
     edit = (edit < 3) ? edit + 1 : 0;
-    if (edit == ROOTEDIT) {
-      editMode = &chordRoot;
-    } else if (edit == CHORDEDIT) {
-      editMode = &chordType;
-    } else if (edit == VOLEDIT) {
-      editMode = &volume;
-    } else if (edit == VELEDIT) {
-      editMode = &velocity;
-    }
+    if (edit == ROOTEDIT)       editMode = &chordRoot;
+    else if (edit == CHORDEDIT) editMode = &chordType;
+    else if (edit == VOLEDIT)   editMode = &volume;
+    else if (edit == VELEDIT)   editMode = &velocity;
     holdTime = 0;
     displayUI();
   }
@@ -300,15 +281,10 @@ void displayLabel(String labelText, int position) {
   int16_t x1, y1;
   uint16_t w, h;
   display.getTextBounds(labelText, 0, 0, &x1, &y1, &w, &h);
-  if (position == 0) {
-    display.setCursor(0, 0);
-  } else if (position == 1) {
-    display.setCursor(0, SCREEN_HEIGHT / 2);
-  } else if (position == 2) {
-    display.setCursor(SCREEN_WIDTH - w, 0);
-  } else if (position == 3) {
-    display.setCursor(SCREEN_WIDTH - w, SCREEN_HEIGHT / 2);
-  }
+  if (position == 0)      display.setCursor(0, 0);
+  else if (position == 1) display.setCursor(0, SCREEN_HEIGHT / 2);
+  else if (position == 2) display.setCursor(SCREEN_WIDTH - w, 0);
+  else if (position == 3) display.setCursor(SCREEN_WIDTH - w, SCREEN_HEIGHT / 2);
   display.print(labelText);
 }
 
@@ -318,116 +294,54 @@ void displayItem(String itemText, int position) {
   int16_t x1, y1;
   uint16_t w, h;
   display.getTextBounds(itemText, 0, 0, &x1, &y1, &w, &h);
-  if (position == 0) {
-    display.setCursor(0, 10);
-  } else if (position == 1) {
-    display.setCursor(0, (SCREEN_HEIGHT / 2) + 10);
-  } else if (position == 2) {
-    display.setCursor(SCREEN_WIDTH - w, 10);
-  } else if (position == 3) {
-    display.setCursor(SCREEN_WIDTH - w, (SCREEN_HEIGHT / 2) + 10);
-  }
+  if (position == 0)      display.setCursor(0, 10);
+  else if (position == 1) display.setCursor(0, (SCREEN_HEIGHT / 2) + 10);
+  else if (position == 2) display.setCursor(SCREEN_WIDTH - w, 10);
+  else if (position == 3) display.setCursor(SCREEN_WIDTH - w, (SCREEN_HEIGHT / 2) + 10);
   display.print(itemText);
 }
 
 void displaySelector(int position) {
   display.setTextSize(2);
   display.setTextColor(WHITE);
-  if (position == 0) {
-    display.setCursor(SCREEN_WIDTH / 2, 10);
-  } else if (position == 1) {
-    display.setCursor(SCREEN_WIDTH / 2, (SCREEN_HEIGHT / 2) + 10);
-  } else if (position == 2) {
-    display.setCursor(SCREEN_WIDTH / 2, 10);
-  } else if (position == 3) {
-    display.setCursor(SCREEN_WIDTH / 2, (SCREEN_HEIGHT / 2) + 10);
-  }
-  if (position < 2) {
-    display.print(F("<"));
-  } else {
-    display.print(F(">"));
-  }
+  if (position == 0)      display.setCursor(SCREEN_WIDTH / 2, 10);
+  else if (position == 1) display.setCursor(SCREEN_WIDTH / 2, (SCREEN_HEIGHT / 2) + 10);
+  else if (position == 2) display.setCursor(SCREEN_WIDTH / 2, 10);
+  else if (position == 3) display.setCursor(SCREEN_WIDTH / 2, (SCREEN_HEIGHT / 2) + 10);
+
+  if (position < 2) display.print(F("<"));
+  else display.print(F(">"));
 }
 
 String getChordRoot() {
-  int root = chords[editSelector]->getRoot();
-  switch (abs(root % 12)) {
-    case 0:
-      return "C";
-      break;
-    case 1:
-      return "C#/Db";
-      break;
-    case 2:
-      return "D";
-      break;
-    case 3:
-      return "D#/Eb";
-      break;
-    case 4:
-      return "E";
-      break;
-    case 5:
-      return "F";
-      break;
-    case 6:
-      return "F#/Gb";
-      break;
-    case 7:
-      return "G";
-      break;
-    case 8:
-      return "G#/Ab";
-      break;
-    case 9:
-      return "A";
-      break;
-    case 10:
-      return "A#/Bb";
-      break;
-    case 11:
-      return "B";
-      break;
-    default:
-      return "";
-      break;
-  }
+  int root = abs(chords[editSelector]->getRoot() % 12);
+  if (root == 0)        return "C";
+  else if (root == 1)   return "C#/Db";
+  else if (root == 2)   return "D";
+  else if (root == 3)   return "D#/Eb";
+  else if (root == 4)   return "E";
+  else if (root == 5)   return "F";
+  else if (root == 6)   return "F#/Gb";
+  else if (root == 7)   return "G";
+  else if (root == 8)   return "G#/Ab";
+  else if (root == 9)   return "A";
+  else if (root == 10)  return "A#/Bb";
+  else if (root == 11)  return "B";
+  else                  return "";
 }
 
 String getChordType() {
   chordTypes type = chords[editSelector]->getChordType();
-  switch (type) {
-    case MAJOR:
-      return "Maj";
-      break;
-    case MINOR:
-      return "min";
-      break;
-    case AUGMENTED:
-      return "aug";
-      break;
-    case DIMINISHED:
-      return "dim";
-      break;
-    case MAJORSEVEN:
-      return "Maj7";
-      break;
-    case MINORSEVEN:
-      return "min7";
-      break;
-    case DOMINANTSEVEN:
-      return "dom7";
-      break;
-    case HALFDIMINISHEDSEVEN:
-      return "m7b5";
-      break;
-    case FULLDIMINISHEDSEVEN:
-      return "dim7";
-      break;
-    default:
-      return "";
-      break;
-  }
+  if (type == MAJOR)                    return "Maj";
+  else if (type == MINOR)               return "min";
+  else if (type == AUGMENTED)           return "aug";
+  else if (type == DIMINISHED)          return "dim";
+  else if (type == MAJORSEVEN)          return "Maj7";
+  else if (type == MINORSEVEN)          return "min7";
+  else if (type == DOMINANTSEVEN)       return "dom7";
+  else if (type == HALFDIMINISHEDSEVEN) return "m7b5";
+  else if (type == FULLDIMINISHEDSEVEN) return "dim7";
+  else                                  return "";
 }
 
 String getVolume() {
