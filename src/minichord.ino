@@ -9,7 +9,6 @@
 #include "userInterface/animation.h"
 #include "display/display.h"
 #include <Audio.h>
-
 #include <SPI.h>
 #include <SD.h>
 #include <SerialFlash.h>
@@ -89,7 +88,7 @@ BetterEncoder enc(25, 24, 4);
 
 elapsedMillis holdTime;
 
-Display display(chords, strumVoices);
+Display* display;
 
 void setup()
 {
@@ -106,8 +105,14 @@ void setup()
   }
   Serial.println("CAP1188 found!");
 
-  display.setVelocity(&velocity);
-  display.setVolume(&volume);
+  // display things 
+  display = new Display();
+  display->setChords(chords);
+  display->setStrumVoices(strumVoices);
+  display->setVelocity(&velocity);
+  display->setVolume(&volume);
+  display->setEditMode(&editMode); 
+  display->setEditSelector(&editSelector);
 
   // chord objects
   for (int i = 0; i < 7; i++)
@@ -154,7 +159,7 @@ void loop()
   }
   if (editMode->getNum() == ANIM)
   {
-    display.animateStrings();
+    display->animateStrings();
   }
 }
 
@@ -196,7 +201,7 @@ void encoderIncrement()
   audioShield.volume(volume.getVolume());
   if (editMode->getNum() != ANIM)
   {
-    display.displayUI();
+    display->displayUI();
   }
 }
 
@@ -208,7 +213,7 @@ void encoderDecrement()
   audioShield.volume(volume.getVolume());
   if (editMode->getNum() != ANIM)
   {
-    display.displayUI();
+    display->displayUI();
   }
 }
 
@@ -219,7 +224,6 @@ void checkChordButtons()
     if (chords[i]->getButton()->buttonCheck() == 1)
     {
       editSelector = i;
-      display.setEditSelector(editSelector);
       if (chords[editSelector]->getRoot() != EEPROM.read(editSelector))
       {
         EEPROM.write(editSelector, chords[editSelector]->getRoot());
@@ -232,7 +236,7 @@ void checkChordButtons()
       }
       if (editMode->getNum() != ANIM)
       {
-        display.displayUI();
+        display->displayUI();
       }
     }
   }
@@ -254,8 +258,7 @@ void checkEdit()
     else if (edit == VELEDIT)
       editMode = &velocity;
     holdTime = 0;
-    display.setEditMode(editMode);
-    display.displayUI();
+    display->displayUI();
   }
   if (editButton.buttonCheck() == 2 && holdTime > 500)
   {

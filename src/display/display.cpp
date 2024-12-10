@@ -1,9 +1,7 @@
 #include "display.h"
 
-Display::Display(Chord **_chords, Voice **_strumVoices)
+Display::Display()
 {
-    chords = _chords;
-    strumVoices = _strumVoices;
     display = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
     if (!display->begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
     {
@@ -13,11 +11,16 @@ Display::Display(Chord **_chords, Voice **_strumVoices)
     }
     Serial.println("SSD1306 allocation success!");
     display->clearDisplay();
-    displayUI();
-    display->display();
 }
 
-void Display::setEditMode(EncoderEditable* _editMode) {
+void Display::setChords(Chord** _chords) {
+    chords = _chords;
+}
+void Display::setStrumVoices(Voice** _strumVoices) {
+    strumVoices = _strumVoices;
+}
+
+void Display::setEditMode(EncoderEditable** _editMode) {
     editMode = _editMode;
 }
 
@@ -27,7 +30,7 @@ void Display::setVolume(Volume* _volume) {
 void Display::setVelocity(Velocity* _velocity) {
     velocity = _velocity;
 }
-void Display::setEditSelector(int _editSelector) {
+void Display::setEditSelector(int* _editSelector) {
     editSelector = _editSelector;
 }
 
@@ -43,7 +46,7 @@ void Display::displayUI()
     displayItem(getVolume(), 2);
     displayLabel("Velocity:", 3);
     displayItem(String(velocity->getVelocity()), 3);
-    displaySelector(editMode->getNum());
+    displaySelector((*editMode)->getNum());
     display->display();
 }
 
@@ -127,7 +130,7 @@ void Display::displaySelector(int position)
 
 String Display::getChordRoot()
 {
-    int root = abs(chords[editSelector]->getRoot() % 12);
+    int root = abs(chords[*editSelector]->getRoot() % 12);
     if (root == 0) return "C";
     else if (root == 1) return "C#/Db";
     else if (root == 2) return "D";
@@ -145,7 +148,7 @@ String Display::getChordRoot()
 
 String Display::getChordType()
 {
-    chordTypes type = chords[editSelector]->getChordType();
+    chordTypes type = chords[*editSelector]->getChordType();
     if (type == MAJOR)                      return "Maj";
     else if (type == MINOR)                 return "min";
     else if (type == AUGMENTED)             return "aug";

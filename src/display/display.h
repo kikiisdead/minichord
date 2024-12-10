@@ -22,22 +22,24 @@
 
 class Display {
 public:
-    Display(Chord** chords, Voice** strumVoices);
+    Display();
     Adafruit_SSD1306* display;
     void displayUI();
     void animateStrings();
-    void setEditMode(EncoderEditable* _editMode);
+    void setEditMode(EncoderEditable** _editMode);
     void setVolume(Volume* _volume);
     void setVelocity(Velocity* _velocity);
-    void setEditSelector(int _editSelector);
+    void setEditSelector(int* _editSelector);
+    void setChords(Chord** _chords);
+    void setStrumVoices(Voice** _strumVoices);
 private:
     elapsedMillis animationTime;
     Chord** chords;
     Voice** strumVoices;
     Volume* volume;
     Velocity* velocity;
-    EncoderEditable* editMode;
-    int editSelector;
+    EncoderEditable** editMode; //pointer to pointer
+    int* editSelector;
     void displayLabel(String labelText, int position);
     void displayItem(String itemText, int position);
     void displaySelector(int position);
