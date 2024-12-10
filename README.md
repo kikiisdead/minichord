@@ -1,6 +1,8 @@
 # MINICHORD
  a mini omnichord made using Teensy 4.1 and the Teensy Audio Library for Digital Electronics at NYU Steinhardt Music Tech
 
+ [![YouTube Video Demonstrating the Minichord](https://img.youtube.com/vi/LYFFMY3H_Zw/0.jpg)](https://www.youtube.com/watch?v=LYFFMY3H_Zw)
+
 # HARDWARE
  - Teensy 4.1 (could probably use a cheaper version but I have not tested it)
  - Teensy Audio Head
