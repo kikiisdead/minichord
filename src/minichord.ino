@@ -146,6 +146,7 @@ void setup()
 
   // everything works if it hits this point
   Serial.println("I'm working");
+  display->displayUI();
 }
 
 void loop()

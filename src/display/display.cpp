@@ -11,6 +11,7 @@ Display::Display()
     }
     Serial.println("SSD1306 allocation success!");
     display->clearDisplay();
+    display->display();
 }
 
 void Display::setChords(Chord** _chords) {
