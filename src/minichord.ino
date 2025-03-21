@@ -113,6 +113,7 @@ void setup()
   display->setVolume(&volume);
   display->setEditMode(&editMode); 
   display->setEditSelector(&editSelector);
+  display->displayUI();
 
   // chord objects
   for (int i = 0; i < 7; i++)
@@ -146,7 +147,6 @@ void setup()
 
   // everything works if it hits this point
   Serial.println("I'm working");
-  display->displayUI();
 }
 
 void loop()
@@ -196,8 +196,6 @@ void adaCapCheck(int noteTouch[8])
 
 void encoderIncrement()
 { // going into BetterEncoder Object
-  chordRoot.setChord(chords[editSelector]);
-  chordType.setChord(chords[editSelector]);
   editMode->increment(); // using abstraction through a superclass to call this member function
   audioShield.volume(volume.getVolume());
   if (editMode->getNum() != ANIM)
@@ -206,10 +204,8 @@ void encoderIncrement()
   }
 }
 
-void encoderDecrement()
+void encoderDecrement() //could maybe use a pointer to a pointer?
 { // going into BetterEncoder Object
-  chordRoot.setChord(chords[editSelector]);
-  chordType.setChord(chords[editSelector]);
   editMode->decrement(); // using abstraction through a superclass to call this member function
   audioShield.volume(volume.getVolume());
   if (editMode->getNum() != ANIM)
@@ -225,6 +221,8 @@ void checkChordButtons()
     if (chords[i]->getButton()->buttonCheck() == 1)
     {
       editSelector = i;
+      chordRoot.setChord(chords[editSelector]);
+      chordType.setChord(chords[editSelector]);
       if (chords[editSelector]->getRoot() != EEPROM.read(editSelector))
       {
         EEPROM.write(editSelector, chords[editSelector]->getRoot());
@@ -250,14 +248,10 @@ void checkEdit()
   {
     int edit = editMode->getNum();
     edit = (edit < 3) ? edit + 1 : 0;
-    if (edit == ROOTEDIT)
-      editMode = &chordRoot;
-    else if (edit == CHORDEDIT)
-      editMode = &chordType;
-    else if (edit == VOLEDIT)
-      editMode = &volume;
-    else if (edit == VELEDIT)
-      editMode = &velocity;
+    if (edit == ROOTEDIT) editMode = &chordRoot;
+    else if (edit == CHORDEDIT) editMode = &chordType;
+    else if (edit == VOLEDIT) editMode = &volume;
+    else if (edit == VELEDIT) editMode = &velocity;
     holdTime = 0;
     display->displayUI();
   }
