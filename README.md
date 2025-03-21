@@ -5,7 +5,7 @@
 
 # HARDWARE
  - Teensy 4.1 (could probably use a cheaper version but I have not tested it)
- - Teensy Audio Head
+ - Teensy Audio Adaptor Rev D for Teensy 4.x
  - Adafruit CAP1188 
  - 7 MX compatible key switches (or equivalent, I used some Adafruit ones)
  - Adafruit SSD1306 (you may need to change the device ID macro in src/display/display.h)
@@ -14,3 +14,6 @@
 [Mouser Project Page](https://www.mouser.com/ProjectManager/ProjectDetail.aspx?AccessID=75f0d25f79)
 
 Does not include header pins, standoffs, or the cost to print the PCB. 
+
+# TODO
+ - Optimize the project with audio memory usage max

@@ -9,7 +9,7 @@ private:
   int buttonState;
   int lastButtonState;
   int output;
-  elapsedMillis timeSinceEvent;
+  elapsedMillis timeSinceEvent; // used as a debounce to avoid using delays
 public:
   Button(int buttonPin_);
   void update();
