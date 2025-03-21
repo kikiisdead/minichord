@@ -1,5 +1,5 @@
 #include <algorithm>
-#include "Chord.h"
+#include "chord.h"
 
 Chord::Chord(int chordPin)
   : chordButton(chordPin) {
