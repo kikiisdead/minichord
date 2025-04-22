@@ -114,6 +114,7 @@ void setup()
   display->setEditMode(&editMode); 
   display->setEditSelector(&editSelector);
   display->displayUI();
+  Serial.println(F("Display working"));
 
   // chord objects
   for (int i = 0; i < 7; i++)
@@ -122,7 +123,7 @@ void setup()
     chords[i]->noteOffHandler(noteOff);
     chords[i]->capCheckHandler(adaCapCheck);
     chords[i]->initRoot(EEPROM.read(i));
-    chords[i]->setChordType((chordTypes)(EEPROM.read(i + 10)));
+    chords[i]->setChordType(getChordTypes(EEPROM.read(i + 10)));
   }
   Serial.println(F("Chords + EEPROM working"));
 
@@ -257,4 +258,17 @@ void checkEdit()
     display->displayUI();
   }
   if (editButton.buttonCheck() == 2 && holdTime > 500) editMode = &animation;
+}
+
+chordTypes getChordTypes(int num) {
+  if (num == 0) return MAJOR;
+  else if (num == 1) return MINOR;
+  else if (num == 2) return AUGMENTED;
+  else if (num == 3) return DIMINISHED;
+  else if (num == 4) return MAJORSEVEN;
+  else if (num == 5) return MINORSEVEN;
+  else if (num == 6) return DOMINANTSEVEN;
+  else if (num == 7) return HALFDIMINISHEDSEVEN;
+  else if (num == 8) return FULLDIMINISHEDSEVEN;
+  else return MAJOR;
 }
