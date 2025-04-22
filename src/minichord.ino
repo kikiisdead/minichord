@@ -99,11 +99,11 @@ void setup()
   // capacitive touch sensor
   if (!cap.begin())
   {
-    Serial.println("CAP1188 not found");
+    Serial.println(F("CAP1188 not found"));
     while (1)
       ;
   }
-  Serial.println("CAP1188 found!");
+  Serial.println(F("CAP1188 found!"));
 
   // display things 
   display = new Display();
@@ -124,6 +124,7 @@ void setup()
     chords[i]->initRoot(EEPROM.read(i));
     chords[i]->setChordType((chordTypes)(EEPROM.read(i + 10)));
   }
+  Serial.println(F("Chords + EEPROM working"));
 
   // audio things
   for (int i = 0; i < 11; i++)
@@ -135,6 +136,7 @@ void setup()
   AudioMemory(12);
   audioShield.enable();
   audioShield.volume(volume.getVolume());
+  Serial.println(F("Audio objects working"));
 
   for (int i = 0; i < 3; i++)
   {
@@ -144,9 +146,8 @@ void setup()
   {
     strumVoices[i]->setEnvelope(10, 250, 0.3, 500);
   }
-
   // everything works if it hits this point
-  Serial.println("I'm working");
+  Serial.println(F("I'm working"));
 }
 
 void loop()
@@ -226,12 +227,12 @@ void checkChordButtons()
       if (chords[editSelector]->getRoot() != EEPROM.read(editSelector))
       {
         EEPROM.write(editSelector, chords[editSelector]->getRoot());
-        Serial.println("Writing root note");
+        Serial.println(F("Writing root note"));
       }
       if ((int)chords[editSelector]->getChordType() != EEPROM.read(editSelector + 10))
       {
         EEPROM.write(editSelector + 10, (int)chords[editSelector]->getChordType());
-        Serial.println("Writing chord type");
+        Serial.println(F("Writing chord type"));
       }
       if (editMode->getNum() != ANIM)
       {
@@ -255,8 +256,5 @@ void checkEdit()
     holdTime = 0;
     display->displayUI();
   }
-  if (editButton.buttonCheck() == 2 && holdTime > 500)
-  {
-    editMode = &animation;
-  }
+  if (editButton.buttonCheck() == 2 && holdTime > 500) editMode = &animation;
 }
